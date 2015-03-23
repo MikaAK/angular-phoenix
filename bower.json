@@ -1,0 +1,25 @@
+{
+  "name": "phoenix-angular",
+  "version": "0.1.0",
+  "authors": [
+    "MikaAK <mikakalathil@gmail.com>"
+  ],
+  "description": "Phoenix socket bindings for angular",
+  "main": "dist/angular-phoenix.js",
+  "moduleType": [
+    "es6"
+  ],
+  "keywords": [
+    "phoenix",
+    "sockets",
+    "angular"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
