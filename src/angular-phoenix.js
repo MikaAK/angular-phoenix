@@ -3,12 +3,12 @@
 angular.module('angular-phoenix', [])
   .value('Phoenix', window.Phoenix)
   .provider('Socket', function() {
-    var apiBase = '/ws'
+    var urlBase = '/ws'
 
-    this.setApi = url => apiBase = url
+    this.setUrl = url => urlBase = url
 
     this.$get = ['$rootScope', 'Phoenix', ($rootScope, Phoenix) => {
-      var socket = new Phoenix.Socket(apiBase),
+      var socket = new Phoenix.Socket(urlBase),
           channels = new Map()
 
       return {

@@ -1,14 +1,14 @@
 "use strict";
 
 angular.module("angular-phoenix", []).value("Phoenix", window.Phoenix).provider("Socket", function () {
-  var apiBase = "/ws";
+  var urlBase = "/ws";
 
-  this.setApi = function (url) {
-    return apiBase = url;
+  this.setUrl = function (url) {
+    return urlBase = url;
   };
 
   this.$get = ["$rootScope", "Phoenix", function ($rootScope, Phoenix) {
-    var socket = new Phoenix.Socket(apiBase),
+    var socket = new Phoenix.Socket(urlBase),
         channels = new Map();
 
     return {
