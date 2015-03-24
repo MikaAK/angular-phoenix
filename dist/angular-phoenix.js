@@ -1,18 +1,19 @@
 "use strict";
 
-angular.module("angular-phoenix", []).value("Phoenix", window.Phoenix).provider("Socket", function () {
+angular.module("angular-phoenix", []).value("PhoenixBase", window.Phoenix).provider("Phoenix", function () {
   var urlBase = "/ws";
 
   this.setUrl = function (url) {
     return urlBase = url;
   };
 
-  this.$get = ["$rootScope", "Phoenix", function ($rootScope, Phoenix) {
-    debugger;
-    var socket = new Phoenix.Socket(urlBase),
+  this.$get = ["$rootScope", "PhoenixBase", function ($rootScope, PhoenixBase) {
+    var socket = new PhoenixBase.Socket(urlBase),
         channels = new Map();
 
     return {
+      phoenix: PhoenixBase,
+      socket: socket,
       leave: function leave(name) {
         if (!channels.get(name)) {
           return;
@@ -24,7 +25,7 @@ angular.module("angular-phoenix", []).value("Phoenix", window.Phoenix).provider(
         var message = arguments[2] === undefined ? {} : arguments[2];
 
         if (typeof scope === "string") {
-          message = name;
+          message = angular.isDefined(name) || {};
           name = scope;
           scope = null;
         }

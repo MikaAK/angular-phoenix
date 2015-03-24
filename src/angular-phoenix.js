@@ -1,18 +1,19 @@
 'use strict'
 
 angular.module('angular-phoenix', [])
-  .value('Phoenix', window.Phoenix)
-  .provider('Socket', function() {
+  .value('PhoenixBase', window.Phoenix)
+  .provider('Phoenix', function() {
     var urlBase = '/ws'
 
     this.setUrl = url => urlBase = url
 
-    this.$get = ['$rootScope', 'Phoenix', ($rootScope, Phoenix) => {
-      debugger
-      var socket     = new Phoenix.Socket(urlBase),
+    this.$get = ['$rootScope', 'PhoenixBase', ($rootScope, PhoenixBase) => {
+      var socket     = new PhoenixBase.Socket(urlBase),
           channels   = new Map()
 
       return {
+        base: PhoenixBase,
+        socket: socket,
         leave(name) {
           if (!channels.get(name))
             return
@@ -23,14 +24,14 @@ angular.module('angular-phoenix', [])
 
         join(scope, name, message = {}) {
           if (typeof scope === 'string') {
-            message = name
+            message = angular.isDefined(name) || {}
             name = scope
             scope = null
           }
 
           var on = function(event, callback) {
             this.bindings.push({event, callback})
-            
+
             if (scope)
               scope.$on('$destroy', () => this.bindings.splice(callback, 1))
           }
