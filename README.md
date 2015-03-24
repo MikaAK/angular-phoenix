@@ -11,6 +11,8 @@ I've also taken the liberty of Promisifying phoenix!
 $ bower install --save angular-phoenix
 ```
 
+**__Note:__** You must have the original `phoenix.js` loaded prior to this
+
 ### How to use
 This is incomplete and only allows for a single socket connection per client
 
