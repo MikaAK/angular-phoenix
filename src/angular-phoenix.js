@@ -8,8 +8,9 @@ angular.module('angular-phoenix', [])
     this.setUrl = url => urlBase = url
 
     this.$get = ['$rootScope', 'Phoenix', ($rootScope, Phoenix) => {
-      var socket = new Phoenix.Socket(urlBase),
-          channels = new Map()
+      debugger
+      var socket     = new Phoenix.Socket(urlBase),
+          channels   = new Map()
 
       return {
         leave(name) {
@@ -27,27 +28,29 @@ angular.module('angular-phoenix', [])
             scope = null
           }
 
+          var on = function(event, callback) {
+            this.bindings.push({event, callback})
+            
+            if (scope)
+              scope.$on('$destroy', () => this.bindings.splice(callback, 1))
+          }
+
+
+
           var resolve = (resolve) => {
             var channel
 
             if (channel = channels.get(name))
-              return resolve(channel)
+              if (!message)
+                return resolve(angular.extend(channel, {on}))
+              else
+                socket.leave(name)
 
             socket.join(name, message, channel => {
               channels.set(name, channel)
 
               resolve(angular.extend(channel, {
-                on(eventName, callback) {
-                  if (scope)
-                    scope.$on('$destroy', () => {
-                      socket.leave(name)
-                      channels.set(name, false)
-                      this.bindings.splice(callback, 1)
-                    })
-
-                  channel.on(eventName, callback)
-                },
-
+                on,
                 trigger(e, t) {
                   this.bindings
                     .filter(function(t){return t.event===e})

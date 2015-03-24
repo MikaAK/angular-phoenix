@@ -8,6 +8,7 @@ angular.module("angular-phoenix", []).value("Phoenix", window.Phoenix).provider(
   };
 
   this.$get = ["$rootScope", "Phoenix", function ($rootScope, Phoenix) {
+    debugger;
     var socket = new Phoenix.Socket(urlBase),
         channels = new Map();
 
@@ -28,27 +29,26 @@ angular.module("angular-phoenix", []).value("Phoenix", window.Phoenix).provider(
           scope = null;
         }
 
+        var on = function on(event, callback) {
+          var _this = this;
+
+          this.bindings.push({ event: event, callback: callback });
+
+          if (scope) scope.$on("$destroy", function () {
+            return _this.bindings.splice(callback, 1);
+          });
+        };
+
         var resolve = function (resolve) {
           var channel;
 
-          if (channel = channels.get(name)) return resolve(channel);
+          if (channel = channels.get(name)) if (!message) return resolve(angular.extend(channel, { on: on }));else socket.leave(name);
 
           socket.join(name, message, function (channel) {
             channels.set(name, channel);
 
             resolve(angular.extend(channel, {
-              on: function on(eventName, callback) {
-                var _this = this;
-
-                if (scope) scope.$on("$destroy", function () {
-                  socket.leave(name);
-                  channels.set(name, false);
-                  _this.bindings.splice(callback, 1);
-                });
-
-                channel.on(eventName, callback);
-              },
-
+              on: on,
               trigger: function trigger(e, t) {
                 this.bindings.filter(function (t) {
                   return t.event === e;
