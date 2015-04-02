@@ -7,8 +7,17 @@ angular.module('angular-phoenix', [])
 
     this.setUrl = url => urlBase = url
 
-    this.$get = ['$rootScope', 'PhoenixBase', ($rootScope, PhoenixBase) => {
-      var socket     = new PhoenixBase.Socket(urlBase),
+    this.$get = ['$rootScope', '$window', 'PhoenixBase', ($rootScope, $window, PhoenixBase) => {
+      var createSocketUrl = function(url) {
+        var loc            = $window.location,
+            socketProtocol = loc.protocol === 'http:' ? 'ws:' : 'wss:',
+            baseUrl        = url.startsWith('/') ? url.substr(1, url.length) : url
+
+        return `${socketProtocol}//${loc.host}${loc.pathname}${baseUrl}`
+      }
+
+      var socketUrl = urlBase.search('ws') === 0 ? urlBase : createSocketUrl(urlBase),
+          socket     = new PhoenixBase.Socket(urlBase),
           channels   = new Map()
 
       return {

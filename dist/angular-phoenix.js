@@ -7,12 +7,21 @@ angular.module("angular-phoenix", []).value("PhoenixBase", window.Phoenix).provi
     return urlBase = url;
   };
 
-  this.$get = ["$rootScope", "PhoenixBase", function ($rootScope, PhoenixBase) {
-    var socket = new PhoenixBase.Socket(urlBase),
+  this.$get = ["$rootScope", "$window", "PhoenixBase", function ($rootScope, $window, PhoenixBase) {
+    var createSocketUrl = function createSocketUrl(url) {
+      var loc = $window.location,
+          socketProtocol = loc.protocol === "http:" ? "ws:" : "wss:",
+          baseUrl = url.startsWith("/") ? url.substr(1, url.length) : url;
+
+      return "" + socketProtocol + "//" + loc.host + "" + loc.pathname + "" + baseUrl;
+    };
+
+    var socketUrl = urlBase.search("ws") === 0 ? urlBase : createSocketUrl(urlBase),
+        socket = new PhoenixBase.Socket(urlBase),
         channels = new Map();
 
     return {
-      phoenix: PhoenixBase,
+      base: PhoenixBase,
       socket: socket,
       leave: function leave(name) {
         if (!channels.get(name)) {
