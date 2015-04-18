@@ -3,22 +3,58 @@
 angular.module('angular-phoenix', [])
   .value('PhoenixBase', window.Phoenix)
   .provider('Phoenix', function() {
-    var urlBase = '/ws'
+    var urlBase           = '/ws',
+        _autoJoinSocket   = true,
+        _disableMultiJoin = true
 
-    this.setUrl = url => urlBase = url
+    this.setUrl       = url  => urlBase = url
+    this.setMultiJoin = bool => _disableMultiJoin = bool
+    this.setAutoJoin  = bool => _autoJoinSocket   = bool
 
     this.$get = ['$rootScope', '$window', 'PhoenixBase', ($rootScope, $window, PhoenixBase) => {
-      var createSocketUrl = function(url) {
-        var loc            = $window.location,
-            socketProtocol = loc.protocol === 'http:' ? 'ws:' : 'wss:',
-            baseUrl        = url.startsWith('/') ? url.substr(1, url.length) : url
+      var socket     = new PhoenixBase.Socket(urlBase),
+          channels   = new Map(),
+          helpers    = {
+        _extendChannel(scope, channel) {
+          var phoenixReplace = {
+            // Copy fn from phoenix.js and addd scope logic
+          }
 
-        return `${socketProtocol}//${loc.host}${loc.pathname}${baseUrl}`
+          return angular.extend(angular.copy(channel), phoenixReplace)
+        },
+
+        joinChannel(scope, name, message) {
+          var channel = channels.get(name)
+
+          channel = socket.join(name, message)
+
+          // channel.recieve = (() => {
+          //   var _oldRecieve = angular.copy(channel.recieve)
+          //
+          //   return function receive(...args) {
+          //     channels.set(name, {status: 'connected', channel: this})
+          //
+          //     return _oldRecieve(...args)
+          //   }
+          // })();
+
+          channels.set(name, {status: 'fetching', channel})
+
+          channel
+            .after(5000, () => console.log("We're having trouble connecting..."))
+            .receive(() => channels.set(name, {status: 'connected', channel}))
+
+          return channel
+        },
+
+        isFetching(name) {
+          var channel = channels.get(name)
+          return channel && channel.status === 'fetching'
+        }
       }
 
-      var socketUrl = urlBase.search('ws') === 0 ? urlBase : createSocketUrl(urlBase),
-          socket     = new PhoenixBase.Socket(urlBase),
-          channels   = new Map()
+      if (_autoJoinSocket)
+        socket.connect()
 
       return {
         base: PhoenixBase,
@@ -28,49 +64,19 @@ angular.module('angular-phoenix', [])
             return
 
           socket.leave(name)
-          channels.set(name, false)
+          channels.set(name, {status: 'disconnected'})
         },
 
-        join(scope, name, message = {}) {
-          if (typeof scope === 'string') {
-            message = angular.isDefined(name) || {}
-            name = scope
-            scope = null
-          }
+        join(name, message = {}) {
+          var channel = channels.get(name)
 
-          var on = function(event, callback) {
-            this.bindings.push({event, callback})
+          if (helpers.isFetching(name))
+            return channel[1]
 
-            if (scope)
-              scope.$on('$destroy', () => this.bindings.splice(callback, 1))
-          }
+          if (channel && channel.status === 'connected' && Object.keys(message).length)
+            socket.leave(name)
 
-
-
-          var resolve = (resolve) => {
-            var channel
-
-            if (channel = channels.get(name))
-              if (!message)
-                return resolve(angular.extend(channel, {on}))
-              else
-                socket.leave(name)
-
-            socket.join(name, message, channel => {
-              channels.set(name, channel)
-
-              resolve(angular.extend(channel, {
-                on,
-                trigger(e, t) {
-                  this.bindings
-                    .filter(function(t){return t.event===e})
-                    .map(function(e){return $rootScope.$digest(e.callback(t))})
-                }
-              }))
-            })
-          }
-
-          return new Promise(resolve)
+          return helpers.joinChannel(scope, name, message)
         }
       }
     }]
