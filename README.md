@@ -33,19 +33,23 @@ You can only join a channel once, if you provide a new message it will leave the
 Just like normal phoenix we call `Phoenix.join` however we also can take scope!
 
 ```javascript
-// $scope, eventName, message
-Phoenix.join($scope, 'name', {})
-  .then(chann => {
+Phoenix.join('name', {})
+  .receive(chann => {
     // Now our callbacks will get removed on scope destruction
-    chann.on('message', handler)
+    chann.on(scope, 'message', handler)
+    chann.on('message', hander)
   })
 
-Phoenix.join('name', {})
+Phoenix.join('name', {}).promise
   .then(chann => {
-    // We didn't pass scope these callbacks will always run
+    // Now our callbacks will get removed on scope destruction
+    chann.on(scope, 'message', handler)
     chann.on('message', hander)
   })
 ```
+
+### Why add a promise?
+For things like UI-Router this allows you to join into a channel as a resolve property!!
 
 ### Leaving a channel
 `Phoenix.leave('name')`
