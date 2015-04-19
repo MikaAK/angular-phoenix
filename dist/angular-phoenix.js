@@ -2,14 +2,10 @@
 
 angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provider('Phoenix', function () {
   var urlBase = '/ws',
-      _autoJoinSocket = true,
-      _disableMultiJoin = true;
+      _autoJoinSocket = true;
 
   this.setUrl = function (url) {
     return urlBase = url;
-  };
-  this.setMultiJoin = function (bool) {
-    return _disableMultiJoin = bool;
   };
   this.setAutoJoin = function (bool) {
     return _autoJoinSocket = bool;
@@ -19,10 +15,43 @@ angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provi
     var socket = new PhoenixBase.Socket(urlBase),
         channels = new Map(),
         helpers = {
-      _extendChannel: function _extendChannel(scope, channel) {
-        var phoenixReplace = {};
+      _extendChannel: function _extendChannel(channel) {
+        var phoenixReplace = {
+          on: function on(scope, event, callback) {
+            var _this = this;
 
-        return angular.extend(angular.copy(channel), phoenixReplace);
+            if (typeof scope === 'string') {
+              callback = event;
+              event = scope;
+              scope = null;
+            }
+
+            this.bindings.push({ event: event, callback: (function (_callback) {
+                function callback(_x) {
+                  return _callback.apply(this, arguments);
+                }
+
+                callback.toString = function () {
+                  return _callback.toString();
+                };
+
+                return callback;
+              })(function () {
+                for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+                  args[_key] = arguments[_key];
+                }
+
+                callback.apply(undefined, args);
+                $rootScope.$apply();
+              }) });
+
+            if (scope) scope.$on('$destroy', function () {
+              return _this.bindings.splice(callback, 1);
+            });
+          }
+        };
+
+        return angular.extend(channel, phoenixReplace);
       },
 
       joinChannel: function joinChannel(name, message) {
@@ -36,38 +65,34 @@ angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provi
           channel.receive = (function () {
             var _oldReceive = angular.copy(channel.receive);
 
-            return function receive(scope, status, callback) {
-              if (typeof scope === 'function') {
-                callback = angular.copy(scope);
-                scope = null;
-              }
-
-              if (!callback && typeof status === 'function') {
-                callback = angular.copy(status);
+            return function receive(status, callback) {
+              if (typeof status === 'function') {
+                callback = status;
                 status = null;
               }
 
               if (!status) status = 'ok';
 
-              return _oldReceive.call(this, status, callback);
+              _oldReceive.call(this, status, function (chan) {
+                return callback(helpers._extendChannel(chan));
+              });
             };
           })();
 
           channels.set(name, { status: 'fetching', channel: channel });
 
-          channel.after(5000, reject).receive(resolve);
+          channel.after(5000, reject).receive(function (chan) {
+            return resolve(chan);
+          });
         };
 
-        promise = new Promise(joinRes).then(function () {
-          return channels.set(name, { status: 'connected', channel: channel, promise: promise });
+        promise = new Promise(joinRes);
+
+        promise.then(function () {
+          channels.set(name, { status: 'connected', channel: channel, promise: promise });
         });
 
         return angular.extend(channel, { promise: promise });
-      },
-
-      isFetching: function isFetching(name) {
-        var channel = channels.get(name);
-        return channel && channel.status === 'fetching';
       }
     };
 
@@ -86,16 +111,15 @@ angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provi
       join: function join(name) {
         var message = arguments[1] === undefined ? {} : arguments[1];
 
-        var channel = channels.get(name);
+        var channel = channels.get(name),
+            status = channel && channel.status;
 
-        if (helpers.isFetching(name)) {
-          return channel[1];
-        }if (_disableMultiJoin && channel && channel.status === 'connected' && Object.keys(message).length) socket.leave(name);
-
-        return helpers.joinChannel(name, message);
+        if (channel) if (status === 'fetching') {
+          return channel.channel;
+        } else if (status === 'connected') if (Object.keys(message).length) socket.leave(name);else {
+          return channel.channel;
+        }return helpers.joinChannel(name, message);
       }
     };
   }];
 });
-
-// Copy fn from phoenix.js and addd scope logic

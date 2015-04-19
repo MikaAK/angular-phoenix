@@ -4,23 +4,35 @@ angular.module('angular-phoenix', [])
   .value('PhoenixBase', window.Phoenix)
   .provider('Phoenix', function() {
     var urlBase           = '/ws',
-        _autoJoinSocket   = true,
-        _disableMultiJoin = true
+        _autoJoinSocket   = true
 
     this.setUrl       = url  => urlBase = url
-    this.setMultiJoin = bool => _disableMultiJoin = bool
     this.setAutoJoin  = bool => _autoJoinSocket   = bool
 
     this.$get = ['$rootScope', '$window', 'PhoenixBase', ($rootScope, $window, PhoenixBase) => {
       var socket     = new PhoenixBase.Socket(urlBase),
           channels   = new Map(),
           helpers    = {
-        _extendChannel(scope, channel) {
+        _extendChannel(channel) {
           var phoenixReplace = {
-            // Copy fn from phoenix.js and addd scope logic
+            on(scope, event, callback) {
+              if (typeof scope === 'string') {
+                callback = event
+                event = scope
+                scope = null
+              }
+
+              this.bindings.push({event, callback: (...args) => {
+                callback(...args)
+                $rootScope.$apply()
+              }})
+
+              if (scope)
+                scope.$on('$destroy', () => this.bindings.splice(callback, 1))
+            }
           }
 
-          return angular.extend(angular.copy(channel), phoenixReplace)
+          return angular.extend(channel, phoenixReplace)
         },
 
         joinChannel(name, message) {
@@ -34,21 +46,16 @@ angular.module('angular-phoenix', [])
             channel.receive = (() => {
               var _oldReceive = angular.copy(channel.receive)
 
-              return function receive(scope, status, callback) {
-                if (typeof scope === 'function') {
-                  callback = angular.copy(scope)
-                  scope    = null
-                }
-
-                if (!callback && typeof status === 'function') {
-                  callback = angular.copy(status)
+              return function receive(status, callback) {
+                if (typeof status === 'function') {
+                  callback = status
                   status   = null
                 }
 
                 if (!status)
                   status = 'ok'
 
-                return _oldReceive.call(this, status, callback)
+                _oldReceive.call(this, status, chan => callback(helpers._extendChannel(chan)))
               }
             })();
 
@@ -56,18 +63,17 @@ angular.module('angular-phoenix', [])
 
             channel
               .after(5000, reject)
-              .receive(resolve)
+              .receive((chan) => resolve(chan))
           }
 
           promise = new Promise(joinRes)
-            .then(() => channels.set(name, {status: 'connected', channel, promise}))
+
+          promise
+            .then(() => {
+              channels.set(name, {status: 'connected', channel, promise})
+            })
 
           return angular.extend(channel, {promise})
-        },
-
-        isFetching(name) {
-          var channel = channels.get(name)
-          return channel && channel.status === 'fetching'
         }
       }
 
@@ -86,15 +92,17 @@ angular.module('angular-phoenix', [])
         },
 
         join(name, message = {}) {
-          var channel = channels.get(name)
+          var channel = channels.get(name),
+              status  = channel && channel.status
 
-          if (channel && channel.status === 'fetching')
-            return channel.channel
-
-          if (_disableMultiJoin && channel &&
-              channel.status === 'connected' &&
-              Object.keys(message).length)
-            socket.leave(name)
+          if (channel)
+            if (status === 'fetching')
+              return channel.channel
+            else if (status === 'connected')
+              if (Object.keys(message).length)
+                socket.leave(name)
+              else
+                return channel.channel
 
           return helpers.joinChannel(name, message)
         }
