@@ -25,32 +25,44 @@ angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provi
         return angular.extend(angular.copy(channel), phoenixReplace);
       },
 
-      joinChannel: function joinChannel(scope, name, message) {
-        var channel = channels.get(name);
+      joinChannel: function joinChannel(name, message) {
+        var joinRes,
+            promise,
+            channel = channels.get(name);
 
-        channel = socket.join(name, message);
+        joinRes = function (resolve, reject) {
+          channel = socket.join(name, message);
 
-        channel.recieve = (function () {
-          _oldRecieve = angular.copy(channel.recieve);
+          channel.receive = (function () {
+            var _oldReceive = angular.copy(channel.receive);
 
-          return function receive() {
-            for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-            }
+            return function receive(scope, status, callback) {
+              if (typeof scope === 'function') {
+                callback = angular.copy(scope);
+                scope = null;
+              }
 
-            channels.set(name, { status: 'connected', channel: this });
+              if (!callback && typeof status === 'function') {
+                callback = angular.copy(status);
+                status = null;
+              }
 
-            return _oldRecieve.apply(undefined, args);
-          };
-        })();
+              if (!status) status = 'ok';
 
-        channel.after(5000, function () {
-          return console.log('We\'re having trouble connecting...');
+              return _oldReceive.call(this, status, callback);
+            };
+          })();
+
+          channels.set(name, { status: 'fetching', channel: channel });
+
+          channel.after(5000, reject).receive(resolve);
+        };
+
+        promise = new Promise(joinRes).then(function () {
+          return channels.set(name, { status: 'connected', channel: channel, promise: promise });
         });
 
-        channels.set(name, { status: 'fetching', channel: channel });
-        debugger;
-        return channel;
+        return angular.extend(channel, { promise: promise });
       },
 
       isFetching: function isFetching(name) {
@@ -78,9 +90,9 @@ angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provi
 
         if (helpers.isFetching(name)) {
           return channel[1];
-        }if (channel && channel.status === 'connected' && Object.keys(message).length) socket.leave(name);
+        }if (_disableMultiJoin && channel && channel.status === 'connected' && Object.keys(message).length) socket.leave(name);
 
-        return helpers.joinChannel(scope, name, message);
+        return helpers.joinChannel(name, message);
       }
     };
   }];
