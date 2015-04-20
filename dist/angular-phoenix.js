@@ -1,6 +1,85 @@
 'use strict';
 
-angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provider('Phoenix', function () {
+angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', function ($rootScope) {
+  var phoenix = angular.copy(window.Phoenix);
+
+  phoenix.Channel.prototype.on = (function () {
+    var _oldOn = angular.copy(phoenix.Channel.prototype.on);
+
+    return function on(scope, event, callback) {
+      var _this = this;
+
+      var newCallback;
+
+      if (typeof scope === 'string') {
+        callback = event;
+        event = scope;
+        scope = null;
+      }
+
+      newCallback = function () {
+        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+          args[_key] = arguments[_key];
+        }
+
+        callback.apply(undefined, args);
+        $rootScope.$apply();
+      };
+
+      _oldOn.call(this, event, newCallback);
+
+      if (scope) scope.$on('$destroy', function () {
+        return _this.bindings.splice(newCallback, 1);
+      });
+    };
+  })();
+
+  phoenix.Channel.prototype.receive = (function () {
+    var _oldReceive = angular.copy(phoenix.Channel.prototype.receive);
+
+    return function receive(status, callback) {
+      if (typeof status === 'function') {
+        callback = status;
+        status = null;
+      }
+
+      if (!status) status = 'ok';
+
+      return _oldReceive.call(this, status, callback);
+    };
+  })();
+
+  phoenix.Channel.prototype.push = (function () {
+    var _oldPush = angular.copy(phoenix.Channel.prototype.push);
+
+    return function push() {
+      for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+        args[_key2] = arguments[_key2];
+      }
+
+      var res = _oldPush.apply(this, args);
+
+      res.receive = (function () {
+        var oldRecieve = res.receive;
+
+        return function receive(status, callback) {
+          if (typeof status === 'function') {
+            callback = status;
+            status = null;
+          }
+
+          if (!status) status = 'ok';
+
+          return oldRecieve.call(this, status, callback);
+        };
+      })();
+
+      return res;
+    };
+  })();
+
+  return phoenix;
+}]).provider('Phoenix', function () {
   var urlBase = '/ws',
       _autoJoinSocket = true;
 
@@ -11,89 +90,31 @@ angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provi
     return _autoJoinSocket = bool;
   };
 
-  this.$get = ['$rootScope', '$window', 'PhoenixBase', function ($rootScope, $window, PhoenixBase) {
+  this.$get = ['PhoenixBase', function (PhoenixBase) {
     var socket = new PhoenixBase.Socket(urlBase),
         channels = new Map(),
-        helpers = {
-      _extendChannel: function _extendChannel(channel) {
-        var phoenixReplace = {
-          on: function on(scope, event, callback) {
-            var _this = this;
+        joinChannel = function joinChannel(name, message) {
+      var joinRes,
+          promise,
+          channel = channels.get(name);
 
-            if (typeof scope === 'string') {
-              callback = event;
-              event = scope;
-              scope = null;
-            }
+      joinRes = function (resolve, reject) {
+        channel = socket.join(name, message);
 
-            this.bindings.push({ event: event, callback: (function (_callback) {
-                function callback(_x) {
-                  return _callback.apply(this, arguments);
-                }
+        channels.set(name, { status: 'fetching', channel: channel });
 
-                callback.toString = function () {
-                  return _callback.toString();
-                };
-
-                return callback;
-              })(function () {
-                for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-                  args[_key] = arguments[_key];
-                }
-
-                callback.apply(undefined, args);
-                $rootScope.$apply();
-              }) });
-
-            if (scope) scope.$on('$destroy', function () {
-              return _this.bindings.splice(callback, 1);
-            });
-          }
-        };
-
-        return angular.extend(channel, phoenixReplace);
-      },
-
-      joinChannel: function joinChannel(name, message) {
-        var joinRes,
-            promise,
-            channel = channels.get(name);
-
-        joinRes = function (resolve, reject) {
-          channel = socket.join(name, message);
-
-          channel.receive = (function () {
-            var _oldReceive = angular.copy(channel.receive);
-
-            return function receive(status, callback) {
-              if (typeof status === 'function') {
-                callback = status;
-                status = null;
-              }
-
-              if (!status) status = 'ok';
-
-              _oldReceive.call(this, status, function (chan) {
-                return callback(helpers._extendChannel(chan));
-              });
-            };
-          })();
-
-          channels.set(name, { status: 'fetching', channel: channel });
-
-          channel.after(5000, reject).receive(function (chan) {
-            return resolve(chan);
-          });
-        };
-
-        promise = new Promise(joinRes);
-
-        promise.then(function () {
-          channels.set(name, { status: 'connected', channel: channel, promise: promise });
+        channel.after(5000, reject).receive(function (chan) {
+          return resolve(chan);
         });
+      };
 
-        return angular.extend(channel, { promise: promise });
-      }
+      promise = new Promise(joinRes);
+
+      promise.then(function () {
+        channels.set(name, { status: 'connected', channel: channel, promise: promise });
+      });
+
+      return angular.extend(channel, { promise: promise });
     };
 
     if (_autoJoinSocket) socket.connect();
@@ -118,7 +139,7 @@ angular.module('angular-phoenix', []).value('PhoenixBase', window.Phoenix).provi
           return channel.channel;
         } else if (status === 'connected') if (Object.keys(message).length) socket.leave(name);else {
           return channel.channel;
-        }return helpers.joinChannel(name, message);
+        }return joinChannel(name, message);
       }
     };
   }];
