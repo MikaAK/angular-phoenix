@@ -112,6 +112,8 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
 
       promise.then(function () {
         channels.set(name, { status: 'connected', channel: channel, promise: promise });
+      }, function () {
+        return console.warn('connection timed out...');
       });
 
       return angular.extend(channel, { promise: promise });
@@ -119,14 +121,24 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
 
     if (_autoJoinSocket) socket.connect();
 
+    PhoenixBase.Channel.prototype.leave = function () {
+      var _oldLeave = angular.copy(phoenix.Channel.prototype.leave);
+
+      return function leave() {
+        channels.set(this.topic, { status: 'disconnected' });
+
+        return _oldLeave.call(this);
+      };
+    };
+
     return {
       base: PhoenixBase,
       socket: socket,
-      leave: function leave(name) {
-        if (!channels.get(name)) {
+      leave: function leave(chan) {
+        var channel = channels.get(chan.topic);
+        if (!channel || channel.status === 'disconnected') {
           return;
-        }socket.leave(name);
-        channels.set(name, { status: 'disconnected' });
+        }channel.leave();
       },
 
       join: function join(name) {

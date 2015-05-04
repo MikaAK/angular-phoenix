@@ -81,9 +81,9 @@ angular.module('angular-phoenix', [])
     this.setAutoJoin  = bool => _autoJoinSocket   = bool
 
     this.$get = ['PhoenixBase', (PhoenixBase) => {
-      var socket     = new PhoenixBase.Socket(urlBase),
-          channels   = new Map(),
-          joinChannel= (name, message) => {
+      var socket      = new PhoenixBase.Socket(urlBase),
+          channels    = new Map(),
+          joinChannel = (name, message) => {
             var joinRes,
                 promise,
                 channel = channels.get(name)
@@ -103,7 +103,7 @@ angular.module('angular-phoenix', [])
             promise
               .then(() => {
                 channels.set(name, {status: 'connected', channel, promise})
-              })
+              }, () => console.warn('connection timed out...'))
 
             return angular.extend(channel, {promise})
           }
@@ -111,15 +111,26 @@ angular.module('angular-phoenix', [])
       if (_autoJoinSocket)
         socket.connect()
 
+      PhoenixBase.Channel.prototype.leave = (() => {
+        var _oldLeave = angular.copy(PhoenixBase.Channel.prototype.leave)
+
+        return function leave() {
+          channels.set(this.topic, {status: 'disconnected'})
+
+          return _oldLeave.call(this)
+        }
+      })();
+
+
       return {
         base: PhoenixBase,
         socket: socket,
-        leave(name) {
-          if (!channels.get(name))
+        leave(chan) {
+          var channel = channels.get(chan.topic)
+          if (!channel || channel.status === 'disconnected')
             return
 
-          socket.leave(name)
-          channels.set(name, {status: 'disconnected'})
+          channel.leave()
         },
 
         join(name, message = {}) {
