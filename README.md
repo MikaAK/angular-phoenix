@@ -23,6 +23,7 @@ First we need to set our socket base url and add a global dependency.
 ```javascript
 .config(['PhoenixProvider', PhoenixProvider => {
   PhoenixProvider.setUrl('ws//localhost:9000/ws')
+  PhoenixProiver.setAutoJoin(false) // Phoenix will autojoin the socket unless this is called
 }])
 ```
 
@@ -49,7 +50,17 @@ Phoenix.join('name', {}).promise
 ```
 
 ### Why add a promise?
-For things like UI-Router this allows you to join into a channel as a resolve property!!
+For things like UI-Router this allows you to join into a channel as a resolve property!! 
+```javascript
+.state('chatRoom', {
+  url: '/chatRoom/:id',
+  resolve: {
+    chatChannel: ['$stateParams', 'Phoenix', ($stateParams, Phoenix) => {
+      return Phoenix.join(`chatRoom:${$stateParams.id}`).promise
+    }]
+  }
+})
+```
 
 ### Leaving a channel
 `Phoenix.leave('name')`
