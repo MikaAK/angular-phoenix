@@ -121,15 +121,15 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
 
     if (_autoJoinSocket) socket.connect();
 
-    PhoenixBase.Channel.prototype.leave = function () {
-      var _oldLeave = angular.copy(phoenix.Channel.prototype.leave);
+    PhoenixBase.Channel.prototype.leave = (function () {
+      var _oldLeave = angular.copy(PhoenixBase.Channel.prototype.leave);
 
       return function leave() {
         channels.set(this.topic, { status: 'disconnected' });
 
         return _oldLeave.call(this);
       };
-    };
+    })();
 
     return {
       base: PhoenixBase,
