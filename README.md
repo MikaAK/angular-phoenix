@@ -60,6 +60,21 @@ For things like UI-Router this allows you to join into a channel as a resolve pr
     }]
   }
 })
+
+// In the controller
+_setupSocket() {
+  this.chatChannel.on(this.$, 'new:message', (message) => {
+    this.messages.push(message)
+  })
+  
+  // Alternatively with no resolve
+  Phoenix.join('chatRoom')
+    .after(5000, () => console.warn('it didn\'t work'))
+    // This is the same as just passing in "ok" and a callback
+    .receive((message) => {
+        this.message.push(message)
+    })
+}
 ```
 
 ### Leaving a channel
