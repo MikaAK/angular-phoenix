@@ -80,7 +80,7 @@ angular.module('angular-phoenix', [])
     this.setUrl       = url  => urlBase = url
     this.setAutoJoin  = bool => _autoJoinSocket   = bool
 
-    this.$get = ['PhoenixBase', (PhoenixBase) => {
+    this.$get = ['$q', 'PhoenixBase', ($q, PhoenixBase) => {
       var socket      = new PhoenixBase.Socket(urlBase),
           channels    = new Map(),
           joinChannel = (name, message) => {
@@ -98,7 +98,7 @@ angular.module('angular-phoenix', [])
                 .receive((chan) => resolve(chan))
             }
 
-            promise = new Promise(joinRes)
+            promise = new $q(joinRes)
 
             promise
               .then(() => {

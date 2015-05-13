@@ -90,7 +90,7 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
     return _autoJoinSocket = bool;
   };
 
-  this.$get = ['PhoenixBase', function (PhoenixBase) {
+  this.$get = ['$q', 'PhoenixBase', function ($q, PhoenixBase) {
     var socket = new PhoenixBase.Socket(urlBase),
         channels = new Map(),
         joinChannel = function joinChannel(name, message) {
@@ -108,7 +108,7 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
         });
       };
 
-      promise = new Promise(joinRes);
+      promise = new $q(joinRes);
 
       promise.then(function () {
         channels.set(name, { status: 'connected', channel: channel, promise: promise });
