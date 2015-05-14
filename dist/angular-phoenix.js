@@ -53,12 +53,12 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
       var joinRes, promise, channel;
 
       joinRes = function (resolve, reject) {
-        channel = socket.chan(name, message).join();
+        channel = socket.chan(name, message);
 
         channels.set(name, { status: 'fetching', channel: channel });
 
-        channel.after(5000, reject).receive('ok', function (chan) {
-          return resolve(chan);
+        channel.join().after(5000, reject).receive('ok', function () {
+          return resolve(channel);
         }).receive('error', reject);
       };
 

@@ -47,13 +47,13 @@ angular.module('angular-phoenix', [])
                 channel
 
             joinRes = (resolve, reject) => {
-              channel = socket.chan(name, message).join()
+              channel = socket.chan(name, message)
 
               channels.set(name, {status: 'fetching', channel})
 
-              channel
+              channel.join()
                 .after(5000, reject)
-                .receive('ok', chan => resolve(chan))
+                .receive('ok', () => resolve(channel))
                 .receive('error', reject)
             }
 
