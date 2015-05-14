@@ -1,6 +1,6 @@
 {
   "name": "angular-phoenix",
-  "version": "0.2.5-rc.1",
+  "version": "0.3.0-rc.1",
   "description": "Native bindings for phoenix in angular",
   "main": "dist/angular-phoenix.js",
   "scripts": {
