@@ -24,7 +24,7 @@ angular.module('angular-phoenix', [])
         _oldOn.call(this, event, newCallback)
 
         if (scope)
-          scope.$on('$destroy', () => this.bindings.splice(newCallback, 1))
+          scope.$on('$destroy', () => this.bindings.splice(this.bindings.indexOf(newCallback), 1))
       }
     })();
 
@@ -92,8 +92,15 @@ angular.module('angular-phoenix', [])
           channel.leave()
         },
 
-        join(name, message = {}) {
-          var channel = channels.get(name),
+        join(scope, name, message = {}) {
+          if (typeof scope === 'string') {
+            message = name
+            name    = scope
+            scope   = null
+          }
+
+          var resChannel,
+              channel = channels.get(name),
               status  = channel && channel.status
 
           if (channel)
@@ -105,7 +112,15 @@ angular.module('angular-phoenix', [])
               else
                 return channel.channel
 
-          return joinChannel(name, message)
+          resChannel = joinChannel(name, message)
+
+          if (scope)
+            resChannel.promise
+              .then((chan) => {
+                scope.$on('$destroy', () => chan.leave())
+              })
+
+          return resChannel
         }
       }
     }]

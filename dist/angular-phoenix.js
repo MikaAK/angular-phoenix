@@ -29,11 +29,58 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
       _oldOn.call(this, event, newCallback);
 
       if (scope) scope.$on('$destroy', function () {
-        return _this.bindings.splice(newCallback, 1);
+        return _this.bindings.splice(_this.bindings.indexOf(newCallback), 1);
       });
     };
   })();
 
+<<<<<<< HEAD
+=======
+  phoenix.Channel.prototype.receive = (function () {
+    var _oldReceive = angular.copy(phoenix.Channel.prototype.receive);
+
+    return function receive(status, callback) {
+      if (typeof status === 'function') {
+        callback = status;
+        status = null;
+      }
+
+      if (!status) status = 'ok';
+
+      return _oldReceive.call(this, status, callback);
+    };
+  })();
+
+  phoenix.Channel.prototype.push = (function () {
+    var _oldPush = angular.copy(phoenix.Channel.prototype.push);
+
+    return function push() {
+      for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+        args[_key2] = arguments[_key2];
+      }
+
+      var res = _oldPush.apply(this, args);
+
+      res.receive = (function () {
+        var oldRecieve = angular.copy(res.receive);
+
+        return function receive(status, callback) {
+          if (typeof status === 'function') {
+            callback = status;
+            status = null;
+          }
+
+          if (!status) status = 'ok';
+
+          return oldRecieve.call(this, status, callback);
+        };
+      })();
+
+      return res;
+    };
+  })();
+
+>>>>>>> 0.2.4-phoenix-0.11.0
   return phoenix;
 }]).provider('Phoenix', function () {
   var urlBase = '/ws',
@@ -95,17 +142,32 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
         }channel.leave();
       },
 
-      join: function join(name) {
-        var message = arguments[1] === undefined ? {} : arguments[1];
+      join: function join(scope, name) {
+        var message = arguments[2] === undefined ? {} : arguments[2];
 
-        var channel = channels.get(name),
+        if (typeof scope === 'string') {
+          message = name;
+          name = scope;
+          scope = null;
+        }
+
+        var resChannel,
+            channel = channels.get(name),
             status = channel && channel.status;
 
         if (channel) if (status === 'fetching') {
           return channel.channel;
         } else if (status === 'connected') if (Object.keys(message).length) socket.leave(name);else {
           return channel.channel;
-        }return joinChannel(name, message);
+        }resChannel = joinChannel(name, message);
+
+        if (scope) resChannel.promise.then(function (chan) {
+          scope.$on('$destroy', function () {
+            return chan.leave();
+          });
+        });
+
+        return resChannel;
       }
     };
   }];
