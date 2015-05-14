@@ -28,48 +28,6 @@ angular.module('angular-phoenix', [])
       }
     })();
 
-    phoenix.Channel.prototype.receive = (() => {
-      var _oldReceive = angular.copy(phoenix.Channel.prototype.receive)
-
-      return function receive(status, callback) {
-        if (typeof status === 'function') {
-          callback = status
-          status   = null
-        }
-
-        if (!status)
-          status = 'ok'
-
-        return _oldReceive.call(this, status, callback)
-      }
-    })();
-
-    phoenix.Channel.prototype.push = (() => {
-      var _oldPush = angular.copy(phoenix.Channel.prototype.push)
-
-      return function push(...args) {
-        var res = _oldPush.apply(this, args)
-
-        res.receive = (() => {
-          var oldRecieve = (res.receive)
-
-          return function receive(status, callback) {
-            if (typeof status === 'function') {
-              callback = status
-              status  = null
-            }
-
-            if (!status)
-              status = 'ok'
-
-            return oldRecieve.call(this, status, callback)
-          }
-        })();
-
-        return res
-      }
-    })();
-
     return phoenix
   }])
 
@@ -86,16 +44,17 @@ angular.module('angular-phoenix', [])
           joinChannel = (name, message) => {
             var joinRes,
                 promise,
-                channel = channels.get(name)
+                channel
 
             joinRes = (resolve, reject) => {
-              channel = socket.join(name, message)
+              channel = socket.chan(name, message).join()
 
               channels.set(name, {status: 'fetching', channel})
 
               channel
                 .after(5000, reject)
-                .receive((chan) => resolve(chan))
+                .receive('ok', chan => resolve(chan))
+                .receive('error', reject)
             }
 
             promise = new $q(joinRes)
