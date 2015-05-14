@@ -34,53 +34,6 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
     };
   })();
 
-<<<<<<< HEAD
-=======
-  phoenix.Channel.prototype.receive = (function () {
-    var _oldReceive = angular.copy(phoenix.Channel.prototype.receive);
-
-    return function receive(status, callback) {
-      if (typeof status === 'function') {
-        callback = status;
-        status = null;
-      }
-
-      if (!status) status = 'ok';
-
-      return _oldReceive.call(this, status, callback);
-    };
-  })();
-
-  phoenix.Channel.prototype.push = (function () {
-    var _oldPush = angular.copy(phoenix.Channel.prototype.push);
-
-    return function push() {
-      for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-        args[_key2] = arguments[_key2];
-      }
-
-      var res = _oldPush.apply(this, args);
-
-      res.receive = (function () {
-        var oldRecieve = angular.copy(res.receive);
-
-        return function receive(status, callback) {
-          if (typeof status === 'function') {
-            callback = status;
-            status = null;
-          }
-
-          if (!status) status = 'ok';
-
-          return oldRecieve.call(this, status, callback);
-        };
-      })();
-
-      return res;
-    };
-  })();
-
->>>>>>> 0.2.4-phoenix-0.11.0
   return phoenix;
 }]).provider('Phoenix', function () {
   var urlBase = '/ws',
