@@ -29,7 +29,7 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
       _oldOn.call(this, event, newCallback);
 
       if (scope) scope.$on('$destroy', function () {
-        return _this.bindings.splice(_this.bindings.indexOf(newCallback), 1);
+        return _this.off(event);
       });
     };
   })();

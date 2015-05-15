@@ -24,7 +24,7 @@ angular.module('angular-phoenix', [])
         _oldOn.call(this, event, newCallback)
 
         if (scope)
-          scope.$on('$destroy', () => this.bindings.splice(this.bindings.indexOf(newCallback), 1))
+          scope.$on('$destroy', () => this.off(event))
       }
     })();
 
