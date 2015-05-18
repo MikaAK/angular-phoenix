@@ -37,11 +37,14 @@ Just like normal phoenix we call `chan.join` however we also can take scope!
 ```javascript
 var chan = Phoenix.chan('name', {})
 
+// This callback will get removed on scope destruction
+chan.on(scope, 'message', handler)
+
+// This will never be destroyed
+chnn.on('message', hander)
 chan.join()
-  .receive(chann => {
-    // Now our callbacks will get removed on scope destruction
-    chann.on(scope, 'message', handler)
-    chann.on('message', hander)
+  .receive('ok', message => {
+    
   })
 
 chan.join().promise
@@ -71,7 +74,7 @@ _setupSocket() {
   })
   
   // Alternatively with no resolve
-  var chan = Phoenix.chan('chatRoom')
+  var chan = Phoenix.chan('chatRoom', userParams)
 
   chan.join()
     .after(5000, () => console.warn('it didn\'t work'))
