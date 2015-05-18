@@ -54,7 +54,6 @@ angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Ph
       return function join(scope) {
         var _this2 = this;
 
-        debugger;
         var res = _oldJoin.call(this);
 
         if (scope) runOnDestroy(scope, function () {

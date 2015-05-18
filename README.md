@@ -29,17 +29,19 @@ First we need to set our socket base url and add a global dependency.
 
 ### Joining a channel
 You can only join a channel once, if you provide a new message it will leave then rejoin the channel.
-Just like normal phoenix we call `Phoenix.join` however we also can take scope!
+Just like normal phoenix we call `chan.join` however we also can take scope!
 
 ```javascript
-Phoenix.join('name', {})
+var chan = Phoenix.chan('name', {})
+
+chan.join()
   .receive(chann => {
     // Now our callbacks will get removed on scope destruction
     chann.on(scope, 'message', handler)
     chann.on('message', hander)
   })
 
-Phoenix.join('name', {}).promise
+chan.join().promise
   .then(chann => {
     // Now our callbacks will get removed on scope destruction
     chann.on(scope, 'message', handler)
@@ -66,7 +68,9 @@ _setupSocket() {
   })
   
   // Alternatively with no resolve
-  Phoenix.join('chatRoom')
+  var chan = Phoenix.chan('chatRoom')
+
+  chan.join()
     .after(5000, () => console.warn('it didn\'t work'))
     // This is the same as just passing in "ok" and a callback
     .receive((message) => {
@@ -75,15 +79,6 @@ _setupSocket() {
 
   // Pass the current scope in so that when destroyed
   // the channel is left
-  Phoenix.join(scope, 'chatRoom:lobby', user)
+  chan.join(scope)
 }
-```
-
-### Leaving a channel
-`Phoenix.leave('name')`
-
-### Accessing base phoenix or current socket
-```javascript
-Phoenix.base // Contains original Phoenix
-Phoenix.socket // Contains your current socket
 ```
