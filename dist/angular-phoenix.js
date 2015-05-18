@@ -1,41 +1,6 @@
 'use strict';
 
-angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', function ($rootScope) {
-  var phoenix = angular.copy(window.Phoenix);
-
-  phoenix.Channel.prototype.on = (function () {
-    var _oldOn = angular.copy(phoenix.Channel.prototype.on);
-
-    return function on(scope, event, callback) {
-      var _this = this;
-
-      var newCallback;
-
-      if (typeof scope === 'string') {
-        callback = event;
-        event = scope;
-        scope = null;
-      }
-
-      newCallback = function () {
-        for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-          args[_key] = arguments[_key];
-        }
-
-        callback.apply(undefined, args);
-        $rootScope.$apply();
-      };
-
-      _oldOn.call(this, event, newCallback);
-
-      if (scope) scope.$on('$destroy', function () {
-        return _this.off(event);
-      });
-    };
-  })();
-
-  return phoenix;
-}]).provider('Phoenix', function () {
+angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Phoenix', [function () {
   var urlBase = '/ws',
       _autoJoinSocket = true;
 
@@ -46,82 +11,72 @@ angular.module('angular-phoenix', []).factory('PhoenixBase', ['$rootScope', func
     return _autoJoinSocket = bool;
   };
 
-  this.$get = ['$q', 'PhoenixBase', function ($q, PhoenixBase) {
+  this.$get = ['$q', '$rootScope', 'PhoenixBase', function ($q, $rootScope, PhoenixBase) {
     var socket = new PhoenixBase.Socket(urlBase),
-        channels = new Map(),
-        joinChannel = function joinChannel(name, message) {
-      var joinRes, promise, channel;
-
-      joinRes = function (resolve, reject) {
-        channel = socket.chan(name, message);
-
-        channels.set(name, { status: 'fetching', channel: channel });
-
-        channel.join().after(5000, reject).receive('ok', function () {
-          return resolve(channel);
-        }).receive('error', reject);
-      };
-
-      promise = new $q(joinRes);
-
-      promise.then(function () {
-        channels.set(name, { status: 'connected', channel: channel, promise: promise });
-      }, function () {
-        return console.warn('connection timed out...');
-      });
-
-      return angular.extend(channel, { promise: promise });
+        runOnDestroy = function runOnDestroy(scope, cb) {
+      return scope.$on('$destroy', cb);
     };
 
-    if (_autoJoinSocket) socket.connect();
+    PhoenixBase.Channel.prototype.on = (function () {
+      var _oldOn = angular.copy(PhoenixBase.Channel.prototype.on);
 
-    PhoenixBase.Channel.prototype.leave = (function () {
-      var _oldLeave = angular.copy(PhoenixBase.Channel.prototype.leave);
+      return function on(scope, event, callback) {
+        var _this = this;
 
-      return function leave() {
-        channels.set(this.topic, { status: 'disconnected' });
-
-        return _oldLeave.call(this);
-      };
-    })();
-
-    return {
-      base: PhoenixBase,
-      socket: socket,
-      leave: function leave(chan) {
-        var channel = channels.get(chan.topic);
-        if (!channel || channel.status === 'disconnected') {
-          return;
-        }channel.leave();
-      },
-
-      join: function join(scope, name) {
-        var message = arguments[2] === undefined ? {} : arguments[2];
+        var newCallback;
 
         if (typeof scope === 'string') {
-          message = name;
-          name = scope;
+          callback = event;
+          event = scope;
           scope = null;
         }
 
-        var resChannel,
-            channel = channels.get(name),
-            status = channel && channel.status;
+        newCallback = function () {
+          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+          }
 
-        if (channel) if (status === 'fetching') {
-          return channel.channel;
-        } else if (status === 'connected') if (Object.keys(message).length) socket.leave(name);else {
-          return channel.channel;
-        }resChannel = joinChannel(name, message);
+          callback.apply(undefined, args);
+          $rootScope.$apply();
+        };
 
-        if (scope) resChannel.promise.then(function (chan) {
-          scope.$on('$destroy', function () {
-            return chan.leave();
+        _oldOn.call(this, event, newCallback);
+
+        if (scope) scope.$on('$destroy', function () {
+          return _this.off(event);
+        });
+      };
+    })();
+
+    PhoenixBase.Channel.prototype.join = (function () {
+      var _oldJoin = angular.copy(PhoenixBase.Channel.prototype.join);
+
+      return function join(scope) {
+        var _this2 = this;
+
+        debugger;
+        var res = _oldJoin.call(this);
+
+        if (scope) runOnDestroy(scope, function () {
+          _this2.leave();
+        });
+
+        this.promise = $q(function (resolve, reject) {
+          res.after(5000, reject).receive('ok', function () {
+            return resolve(_this2);
+          }).receive('error', function () {
+            return reject(_this2);
           });
         });
 
-        return resChannel;
-      }
-    };
+        return res;
+      };
+    })();
+
+    if (_autoJoinSocket) socket.connect();
+
+    socket.PhoenixBase = PhoenixBase;
+
+    return socket;
   }];
-});
+}]);
