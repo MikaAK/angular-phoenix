@@ -25,7 +25,8 @@ First we need to set our socket base url and add a global dependency.
   PhoenixProviver.setAutoJoin(false) // Phoenix will autojoin the socket unless this is called
 }])
 ```
-**Note:** Phoenix when injected will be a instance of `Phoenix.Socket`
+**Note:** Phoenix when injected will be a instance of `Phoenix.Socket` and will connect instantly unless 
+`autoJoin` is false.
 
 **__Now were ready!!!__**
 
