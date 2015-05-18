@@ -1,6 +1,9 @@
 Angular Phoenix
 ===
 
+## Dependancies 
+- [Phoenix.js](https://raw.githubusercontent.com/phoenixframework/phoenix/847754db6b6b378ef4eaa5dfa7a8106e74db6a25/priv/static/phoenix.js)
+
 Provides angular bindings to Phoenix so we can run events within the digest loop.
 
 I've also taken the liberty of Promisifying phoenix!
