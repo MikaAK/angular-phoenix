@@ -48,7 +48,7 @@ angular.module('angular-phoenix', [])
               this.leave()
             })
 
-          this.promise = $q((resolve, reject) => {
+          res.promise = $q((resolve, reject) => {
             res
               .after(5000, reject)
               .receive('ok',    () => resolve(this))

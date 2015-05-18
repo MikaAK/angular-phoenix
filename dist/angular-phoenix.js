@@ -60,7 +60,7 @@ angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Ph
           _this2.leave();
         });
 
-        this.promise = $q(function (resolve, reject) {
+        res.promise = $q(function (resolve, reject) {
           res.after(5000, reject).receive('ok', function () {
             return resolve(_this2);
           }).receive('error', function () {

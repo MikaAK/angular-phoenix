@@ -58,7 +58,7 @@ For things like UI-Router this allows you to join into a channel as a resolve pr
   url: '/chatRoom/:id',
   resolve: {
     chatChannel: ['$stateParams', 'Phoenix', ($stateParams, Phoenix) => {
-      return Phoenix.join(`chatRoom:${$stateParams.id}`).promise
+      return Phoenix.chan(`chatRoom:${$stateParams.id}`).join().promise
     }]
   }
 })
