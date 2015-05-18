@@ -22,9 +22,10 @@ First we need to set our socket base url and add a global dependency.
 ```javascript
 .config(['PhoenixProvider', PhoenixProvider => {
   PhoenixProvider.setUrl('ws//localhost:9000/ws')
-  PhoenixProiver.setAutoJoin(false) // Phoenix will autojoin the socket unless this is called
+  PhoenixProviver.setAutoJoin(false) // Phoenix will autojoin the socket unless this is called
 }])
 ```
+**Note:** Phoenix when injected will be a instance of `Phoenix.Socket`
 
 **__Now were ready!!!__**
 
@@ -83,3 +84,6 @@ _setupSocket() {
   chan.join(scope)
 }
 ```
+
+## Accessing Phoenix
+`Phoenix.BasePhoenix` is the original phoenix instance.
