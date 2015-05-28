@@ -91,3 +91,7 @@ _setupSocket() {
 
 ## Accessing Phoenix
 `Phoenix.BasePhoenix` is the original phoenix instance.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/MikaAK/angular-phoenix/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
