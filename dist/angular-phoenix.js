@@ -12,7 +12,7 @@ angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Ph
   this.setAutoJoin = function (bool) {
     return _autoJoinSocket = bool;
   };
-  this.defaults = {};
+  this.defaults = null;
 
   this.$get = ['$q', '$rootScope', 'PhoenixBase', function ($q, $rootScope, PhoenixBase) {
     var socket = new PhoenixBase.Socket(urlBase),
@@ -71,7 +71,15 @@ angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Ph
       };
     })();
 
-    if (_autoJoinSocket) socket.connect(_this3.defaults);else socket.connect = socket.connect.bind(socket, _this3.defaults);
+    if (_autoJoinSocket) socket.connect(_this3.defaults || {});else {
+      var _socket$connect;
+
+      var args = [socket];
+
+      if (_this3.defaults) args.push(_this3.defaults);
+
+      socket.connect = (_socket$connect = socket.connect).bind.apply(_socket$connect, args);
+    }
 
     socket.PhoenixBase = PhoenixBase;
 

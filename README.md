@@ -23,10 +23,16 @@ First we need to set our socket base url and add a global dependency.
 .config(['PhoenixProvider', PhoenixProvider => {
   PhoenixProvider.setUrl('ws//localhost:9000/ws')
   PhoenixProviver.setAutoJoin(false) // Phoenix will autojoin the socket unless this is called
+  // set default params with autojoin or connect
+  PhoenixProvider.defaults = {
+    user: 1
+  }
 }])
 ```
 **Note:** Phoenix when injected will be a instance of `Phoenix.Socket` and will connect instantly unless 
 `autoJoin` is false.
+
+**If not with `autoJoin`:** defaults will still apply to Socket.connect() however you can pass custom ones to override 
 
 **__Now were ready!!!__**
 

@@ -8,7 +8,7 @@ angular.module('angular-phoenix', [])
 
     this.setUrl       = url  => urlBase         = url
     this.setAutoJoin  = bool => _autoJoinSocket = bool
-    this.defaults     = {}
+    this.defaults     = null
 
     this.$get = ['$q', '$rootScope', 'PhoenixBase', ($q, $rootScope, PhoenixBase) => {
       var socket       = new PhoenixBase.Socket(urlBase),
@@ -61,9 +61,15 @@ angular.module('angular-phoenix', [])
       })();
 
       if (_autoJoinSocket)
-        socket.connect(this.defaults)
-      else
-        socket.connect = socket.connect.bind(socket, this.defaults)
+        socket.connect(this.defaults || {})
+      else {
+        let args = [socket]
+
+        if (this.defaults)
+          args.push(this.defaults)
+
+        socket.connect = socket.connect.bind(...args)
+      }
 
       socket.PhoenixBase = PhoenixBase
 
