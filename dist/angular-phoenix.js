@@ -1,6 +1,8 @@
 'use strict';
 
 angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Phoenix', [function () {
+  var _this3 = this;
+
   var urlBase = '/ws',
       _autoJoinSocket = true;
 
@@ -10,6 +12,7 @@ angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Ph
   this.setAutoJoin = function (bool) {
     return _autoJoinSocket = bool;
   };
+  this.defaults = {};
 
   this.$get = ['$q', '$rootScope', 'PhoenixBase', function ($q, $rootScope, PhoenixBase) {
     var socket = new PhoenixBase.Socket(urlBase),
@@ -32,11 +35,7 @@ angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Ph
         }
 
         newCallback = function () {
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-            args[_key] = arguments[_key];
-          }
-
-          callback.apply(undefined, args);
+          callback.apply(undefined, arguments);
           $rootScope.$apply();
         };
 
@@ -72,7 +71,7 @@ angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Ph
       };
     })();
 
-    if (_autoJoinSocket) socket.connect();
+    if (_autoJoinSocket) socket.connect(_this3.defaults);else socket.connect = socket.connect.bind(socket, _this3.defaults);
 
     socket.PhoenixBase = PhoenixBase;
 
