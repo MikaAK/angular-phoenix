@@ -41,7 +41,7 @@ You can only join a channel once, if you provide a new message it will leave the
 Just like normal phoenix we call `chan.join` however we also can take scope!
 
 ```javascript
-var chan = Phoenix.chan('name', {})
+var chan = Phoenix.channel('name', {})
 
 // This callback will get removed on scope destruction
 chan.on(scope, 'message', handler)
@@ -68,7 +68,7 @@ For things like UI-Router this allows you to join into a channel as a resolve pr
   url: '/chatRoom/:id',
   resolve: {
     chatChannel: ['$stateParams', 'Phoenix', ($stateParams, Phoenix) => {
-      return Phoenix.chan(`chatRoom:${$stateParams.id}`).join().promise
+      return Phoenix.channel(`chatRoom:${$stateParams.id}`).join().promise
     }]
   }
 })
@@ -80,7 +80,7 @@ _setupSocket() {
   })
   
   // Alternatively with no resolve
-  var chan = Phoenix.chan('chatRoom', userParams)
+  var chan = Phoenix.channel('chatRoom', userParams)
 
   chan.join()
     .after(5000, () => console.warn('it didn\'t work'))
