@@ -22,7 +22,7 @@ First we need to set our socket base url and add a global dependency.
 ```javascript
 .config(['PhoenixProvider', PhoenixProvider => {
   PhoenixProvider.setUrl('ws//localhost:9000/ws')
-  PhoenixProviver.setAutoJoin(false) // Phoenix will autojoin the socket unless this is called
+  PhoenixProvider.setAutoJoin(false) // Phoenix will autojoin the socket unless this is called
   // set default params with autojoin or connect
   PhoenixProvider.defaults = {
     user: 1
