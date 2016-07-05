@@ -2,8 +2,9 @@ Angular Phoenix
 ===
 Provides angular bindings to Phoenix so we can run events within the digest loop.
 
-### Dependancies 
-- [Phoenix.js](https://github.com/phoenixframework/phoenix/blob/964066d320afef59d99667e2bf84083f27d41e32/priv/static/phoenix.js)
+### Dependencies
+
+- [Phoenix.js](https://raw.githubusercontent.com/phoenixframework/phoenix/964066d320afef59d99667e2bf84083f27d41e32/priv/static/phoenix.js)
 
 
 ### Installing
