@@ -1,73 +1,85 @@
-'use strict'
+'use strict';
 
-angular.module('angular-phoenix', [])
-  .value('PhoenixBase', Phoenix)
-  .provider('Phoenix', [function() {
-    var urlBase           = '/ws',
-        _autoJoinSocket   = true
+angular.module('angular-phoenix', []).value('PhoenixBase', Phoenix).provider('Phoenix', [function () {
+  var _this = this;
 
-    this.setUrl       = url  => urlBase         = url
-    this.setAutoJoin  = bool => _autoJoinSocket = bool
-    this.defaults     = null
+  var urlBase = '/ws',
+      _autoJoinSocket = true;
 
-    this.$get = ['$q', '$rootScope', 'PhoenixBase', ($q, $rootScope, PhoenixBase) => {
-      var socket       = new PhoenixBase.Socket(urlBase, {timeout: 5000, params: this.defaults || {}}),
-          runOnDestroy = (scope, cb) => scope.$on('$destroy', cb)
+  this.setUrl = function (url) {
+    return urlBase = url;
+  };
+  this.setAutoJoin = function (bool) {
+    return _autoJoinSocket = bool;
+  };
+  this.defaults = null;
 
-      PhoenixBase.Channel.prototype.on = (() => {
-        var _oldOn = angular.copy(PhoenixBase.Channel.prototype.on)
+  this.$get = ['$q', '$rootScope', 'PhoenixBase', function ($q, $rootScope, PhoenixBase) {
+    var socket = new PhoenixBase.Socket(urlBase, { timeout: 5000, params: _this.defaults || {} }),
+        runOnDestroy = function runOnDestroy(scope, cb) {
+          return scope.$on('$destroy', cb);
+        };
 
-        return function on(scope, event, callback) {
-          var newCallback
+    PhoenixBase.Channel.prototype.on = function () {
+      var _oldOn = angular.copy(PhoenixBase.Channel.prototype.on);
 
-          if (typeof scope === 'string') {
-            callback = event
-            event = scope
-            scope = null
-          }
+      return function on(scope, event, callback) {
+        var _this2 = this;
 
-          newCallback = (...args) => {
-            callback(...args)
-            $rootScope.$apply()
-          }
+        var newCallback;
 
-          _oldOn.call(this, event, newCallback)
-
-          if (scope)
-            scope.$on('$destroy', () => this.off(event))
+        if (typeof scope === 'string') {
+          callback = event;
+          event = scope;
+          scope = null;
         }
-      })();
 
-      PhoenixBase.Channel.prototype.join = (() => {
-        var _oldJoin = angular.copy(PhoenixBase.Channel.prototype.join)
+        newCallback = function newCallback() {
+          callback.apply(undefined, arguments);
+          $rootScope.$apply();
+        };
 
-        return function join(scope) {
-          var res = _oldJoin.call(this)
+        _oldOn.call(this, event, newCallback);
 
-          if (scope)
-            runOnDestroy(scope, () => {
-              this.leave()
-            })
+        if (scope) scope.$on('$destroy', function () {
+          return _this2.off(event);
+        });
+      };
+    }();
 
-          res.promise = $q((resolve, reject) => {
-            res
-              .receive('ok',    () => resolve(this))
-              .receive('error', () => reject(this))
-          })
+    PhoenixBase.Channel.prototype.join = function () {
+      var _oldJoin = angular.copy(PhoenixBase.Channel.prototype.join);
 
-          return res
-        }
-      })();
+      return function join(scope) {
+        var _this3 = this;
 
-      if (_autoJoinSocket)
-        socket.connect()
-      else {
-        let args = [socket]
-        socket.connect = socket.connect.bind(...args)
-      }
+        var res = _oldJoin.call(this);
 
-      socket.PhoenixBase = PhoenixBase
+        if (scope) runOnDestroy(scope, function () {
+          _this3.leave();
+        });
 
-      return socket
-    }]
-  }])
+        res.promise = $q(function (resolve, reject) {
+          res.receive('ok', function () {
+            return resolve(_this3);
+          }).receive('error', function () {
+            return reject(_this3);
+          });
+        });
+
+        return res;
+      };
+    }();
+
+    if (_autoJoinSocket) socket.connect();else {
+      var _socket$connect;
+
+      var args = [socket];
+      socket.connect = (_socket$connect = socket.connect).bind.apply(_socket$connect, args);
+    }
+
+    socket.PhoenixBase = PhoenixBase;
+
+    return socket;
+  }];
+}]);
