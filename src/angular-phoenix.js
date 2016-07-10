@@ -11,7 +11,7 @@ angular.module('angular-phoenix', [])
     this.defaults     = null
 
     this.$get = ['$q', '$rootScope', 'PhoenixBase', ($q, $rootScope, PhoenixBase) => {
-      var socket       = new PhoenixBase.Socket(urlBase),
+      var socket       = new PhoenixBase.Socket(urlBase, {timeout: 5000, params: this.defaults || {}}),
           runOnDestroy = (scope, cb) => scope.$on('$destroy', cb)
 
       PhoenixBase.Channel.prototype.on = (() => {
@@ -51,7 +51,6 @@ angular.module('angular-phoenix', [])
 
           res.promise = $q((resolve, reject) => {
             res
-              .after(5000, reject)
               .receive('ok',    () => resolve(this))
               .receive('error', () => reject(this))
           })
@@ -61,13 +60,9 @@ angular.module('angular-phoenix', [])
       })();
 
       if (_autoJoinSocket)
-        socket.connect(this.defaults || {})
+        socket.connect()
       else {
         let args = [socket]
-
-        if (this.defaults)
-          args.push(this.defaults)
-
         socket.connect = socket.connect.bind(...args)
       }
 
